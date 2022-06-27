@@ -3,12 +3,6 @@ import networkx as nx
 import retworkx as rx
 import matplotlib.pyplot as plt
 import random as rd
-from conjugate_gradient import conjugate_gradient_opt,conjugate_gradient_back
-import sys
-sys.path.append('\graph_immunization')
-import network_generation as ng
-from vulnerability_meas import max_ev
-from netshield import netshield_plus,netshield
 import numpy as np
 from tqdm import tqdm
 
