@@ -1,10 +1,18 @@
-from cProfile import label
 import networkx as nx
 import retworkx as rx
 import matplotlib.pyplot as plt
 import random as rd
 import numpy as np
 from tqdm import tqdm
+import sys 
+from utils import *
+sys.path.append('\gradient_methods')
+import gradient_methods as gm
+sys.path.remove('\gradient_methods')
+sys.path.append('\other_methods')
+import centrality as ce
+import netshield as ns
+
 
 def f_obj(config, Ao, eps =0.1, itemax =300):
 
@@ -39,132 +47,154 @@ def f_obj(config, Ao, eps =0.1, itemax =300):
 
 
 
-N = 1000
+graph = ""
+
 n_calc=10
 
-'''G = ng.small_world(N)
+G = nx.read_gml("dataset/"+"graph"+".gml")
+
+N = G.number_of_nodes()
 Gr = rx.networkx_converter(G)
 A = rx.adjacency_matrix(Gr)
 
-eig_start = 0
+
+# compute the initial spectral radius
+sr_init = 0
 for i in range(n_calc):
-    eig_start += max_ev(Gr)
+    sr_init += max_ev(Gr)
 
-eig_start /= n_calc
-# save graph 
-#nx.write_gml(G,'graph_benchmark_XXXX.gml')
+sr_init /= n_calc
 
 
- ### Solution with conj grad
-sol_conj_grad = conjugate_gradient_opt(G,N)
+ ### Solution with grad downward
+sol_grad_down = gm.gradient_downward(G,N)
 
-eig_conj = [0]
-cost = [0]
-
-
+sr_grad_down = [0]
+l_k = [0]
 l_index = list(range(N))
 score1 = 0
+
 for i in tqdm(range(0,N)):
-    node = sol_conj_grad[i]
+    node = sol_grad_down[i]
     A = np.delete(A,l_index.index(node),0)
     A = np.delete(A,l_index.index(node),1)
     l_index.remove(node)
     eig=0
     for j in range(n_calc):
         eig += max_ev(A=A)
-    eig_conj.append(eig_start-eig/n_calc)
+    sr_grad_down.append(sr_init-eig/n_calc)
     score1+=eig/n_calc
-    cost.append((i+1)/N)
+    l_k.append((i+1)/N)
 print(score1)
 
 
 ### Solution with conj grad back
-sol_conj_back = conjugate_gradient_back(G,N)
+A= rx.adjacency_matrix(Gr)
+sol_grad_up = gm.gradient_upward(G,N)
 
-eig_back = [0]
+sr_grad_up = [0]
 n_calc=20
 A= rx.adjacency_matrix(Gr)
 l_index = list(range(N))
 score2 = 0
+
 for i in tqdm(range(0,N)):
-    node = sol_conj_back[i]
+    node = sol_grad_up[i]
     A = np.delete(A,l_index.index(node),0)
     A = np.delete(A,l_index.index(node),1)
     l_index.remove(node)
     eig=0
     for j in range(n_calc):
         eig += max_ev(A=A)
-    eig_back.append(eig_start-eig/n_calc)
+    sr_grad_up.append(sr_init-eig/n_calc)
     score2+=eig/n_calc
 print(score2)
 
-np.save("sol_conj_grad_and_back_smallworld_1006.npy",np.array([cost,sol_conj_grad,sol_conj_back]))
-
-### solution with netshield +
-A= rx.adjacency_matrix(Gr)
-score3=0
-sol_netsh = np.zeros([N-1,N-1])
-eg_netsh = [0]
-for M in tqdm(range(1,N)):
-
-    vacc = netshield_plus(G,M,int(0.9+0.1*M))
-    sol_netsh[M-1,:len(vacc)] = vacc
-    vacc = np.array(vacc)
-    eig = 0
-    for i in range(n_calc):
-        eig += f_obj(vacc,A)
-    eg_netsh.append(eig_start-eig/n_calc)
-    score3+=eig/n_calc
-print(score3)
-np.save("sol_netshieldp_smallworld_1006.npy",sol_netsh)
-
-
-'''
-
+np.save("sr_grad_down_and_up_"+graph+".npy",np.array([l_k,sr_grad_down,sr_grad_up]))
 
 ### solution with netshield 
-G = nx.read_gml('graph_benchmark_1006.gml')
-Gr = rx.networkx_converter(G)
-A = rx.adjacency_matrix(Gr)
+A= rx.adjacency_matrix(Gr)
 
-eig_start = 0
-for i in range(n_calc):
-    eig_start += max_ev(Gr)
+score3=0
+sr_netsh = [0]
 
-eig_start /= n_calc
-
-
-score4=0
-sol_netsh_ = np.zeros([N-1,N-1])
-eg_netsh_ = [0]
-for M in tqdm(range(1,N)):
-
-    vacc = netshield(Gr,M)
-    sol_netsh_[M-1,:len(vacc)] = vacc
+for k in tqdm(range(1,N)):
+    vacc = ns.netshield(G,k,int(0.9+0.1*k))
     vacc = np.array(vacc)
     eig = 0
     for i in range(n_calc):
         eig += f_obj(vacc,A)
-    eg_netsh_.append(eig_start-eig/n_calc)
+    sr_netsh.append(sr_init-eig/n_calc)
+    score3+=eig/n_calc
+print(score3)
+
+np.save("sr_netshield_"+graph+".npy",sr_netsh)
+
+
+### Solution with  degree centrality
+A= rx.adjacency_matrix(Gr)
+sol_deg=ce.deg_max(G,N)
+
+sr_deg = [0]
+score4 = 0
+l_index = list(range(N))
+
+for i in range(1,N+1):
+    node = sol_deg[i]
+    A = np.delete(A,l_index.index(node),0)
+    A = np.delete(A,l_index.index(node),1)
+    l_index.remove(node)
+    eig=0
+    for j in range(n_calc):
+        eig += max_ev(A=A)
     score4+=eig/n_calc
+    sr_deg.append(sr_init-eig/n_calc)
 print(score4)
 
-np.save("sol_netshield_smallworld_1006.npy",sol_netsh_)
+
+### Solution with betweenness centrality
+A= rx.adjacency_matrix(Gr)
+sol_betw=ce.betw_max(G,N)
+
+sr_betw = [0]
+score5 = 0
+l_index = list(range(N))
+
+for i in range(1,N+1):
+    node = sol_betw[i]
+    A = np.delete(A,l_index.index(node),0)
+    A = np.delete(A,l_index.index(node),1)
+    l_index.remove(node)
+    eig=0
+    for j in range(n_calc):
+        eig += max_ev(A=A)
+    score5+=eig/n_calc
+    sr_betw.append(sr_init-eig/n_calc)
+print(score5)
+
+
+np.save("sr_centr_"+graph+".npy",np.array([sr_deg,sr_betw]))
+
 
 
 
 
 
 plt.figure(1)
-plt.plot(cost,eig_conj,label="conjugate gradient method")
-plt.plot(cost,eig_back,label="conjugate gradient back")
-plt.plot(cost,eg_netsh,label="netshield_plus")
+plt.plot(l_k,sr_grad_down/sr_init*100,label=" gradient downward")
+plt.plot(l_k,sr_grad_up/sr_init*100,label="gradient upward")
+plt.plot(l_k,sr_netsh/sr_init*100,label="netshield")
+plt.plot(l_k,sr_deg/sr_init*100,label="degree centrality")
+plt.plot(l_k,sr_betw/sr_init*100,label="betweenneess centrality")
 plt.grid()
-plt.xlabel('cost')
-plt.ylabel("eigendrop")
+plt.xlabel('proportion of nodes immunized')
+plt.ylabel("eigendrop (%)")
 plt.legend()
-plt.savefig("benchmark_smallworld_1006.png")
+plt.savefig("benchmark_"+graph+".png")
 plt.show()
 
-#print(score1,score2,score3)
-
+print('score gradient downward: ',score1)
+print('score gradient upward: ',score2)
+print('score netshield: ',score3)
+print('score degree centrality: ',score4)
+print('score betweenness centrality: ',score5)

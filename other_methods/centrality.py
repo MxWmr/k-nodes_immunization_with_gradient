@@ -20,7 +20,7 @@ def deg_max(G,M):
 
 
 # selection for vacc by max betweenness centrality with recomputation of centrality
-def betw_max_(G,M): 
+def betw_max(G,M): 
 
     G2 = rx.networkx_converter(G)
     vaccinated=[]
