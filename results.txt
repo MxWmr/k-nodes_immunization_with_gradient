@@ -1,0 +1,6 @@
+football:
+    score gradient downward:  668.1740690846904
+    score gradient upward:  663.4669379520714
+    score netshield:  692.8369410974394
+    score degree centrality:  567.5572739412277
+    score betweenness centrality:  575.1524501425014

@@ -4,14 +4,10 @@ import matplotlib.pyplot as plt
 import random as rd
 import numpy as np
 from tqdm import tqdm
-import sys 
 from utils import *
-sys.path.append('\gradient_methods')
-import gradient_methods as gm
-sys.path.remove('\gradient_methods')
-sys.path.append('\other_methods')
-import centrality as ce
-import netshield as ns
+import gradient_method.gradient_methods as gm
+import other_methods.netshield as ns
+import other_methods.centrality as ce
 
 
 def f_obj(config, Ao, eps =0.1, itemax =300):
@@ -46,12 +42,16 @@ def f_obj(config, Ao, eps =0.1, itemax =300):
     return r_spec
 
 
+## Graph selection
 
-graph = ""
+graph = "small_world"  # to do
+#graph = "footnall" # done
+#graph = "config_model" # done
+#graph = "netscience" # to do
 
 n_calc=10
 
-G = nx.read_gml("dataset/"+"graph"+".gml")
+G = nx.read_gml("dataset/"+graph+".gml")
 
 N = G.number_of_nodes()
 Gr = rx.networkx_converter(G)
@@ -83,7 +83,7 @@ for i in tqdm(range(0,N)):
     for j in range(n_calc):
         eig += max_ev(A=A)
     sr_grad_down.append(sr_init-eig/n_calc)
-    score1+=eig/n_calc
+    score1+=sr_init-eig/n_calc
     l_k.append((i+1)/N)
 print(score1)
 
@@ -107,7 +107,7 @@ for i in tqdm(range(0,N)):
     for j in range(n_calc):
         eig += max_ev(A=A)
     sr_grad_up.append(sr_init-eig/n_calc)
-    score2+=eig/n_calc
+    score2+=sr_init-eig/n_calc
 print(score2)
 
 np.save("sr_grad_down_and_up_"+graph+".npy",np.array([l_k,sr_grad_down,sr_grad_up]))
@@ -118,14 +118,14 @@ A= rx.adjacency_matrix(Gr)
 score3=0
 sr_netsh = [0]
 
-for k in tqdm(range(1,N)):
-    vacc = ns.netshield(G,k,int(0.9+0.1*k))
+for k in tqdm(range(1,N+1)):
+    vacc = ns.netshield(Gr,k)
     vacc = np.array(vacc)
     eig = 0
     for i in range(n_calc):
         eig += f_obj(vacc,A)
     sr_netsh.append(sr_init-eig/n_calc)
-    score3+=eig/n_calc
+    score3+=sr_init-eig/n_calc
 print(score3)
 
 np.save("sr_netshield_"+graph+".npy",sr_netsh)
@@ -139,7 +139,7 @@ sr_deg = [0]
 score4 = 0
 l_index = list(range(N))
 
-for i in range(1,N+1):
+for i in range(N):
     node = sol_deg[i]
     A = np.delete(A,l_index.index(node),0)
     A = np.delete(A,l_index.index(node),1)
@@ -147,7 +147,7 @@ for i in range(1,N+1):
     eig=0
     for j in range(n_calc):
         eig += max_ev(A=A)
-    score4+=eig/n_calc
+    score4+=sr_init-eig/n_calc
     sr_deg.append(sr_init-eig/n_calc)
 print(score4)
 
@@ -160,7 +160,7 @@ sr_betw = [0]
 score5 = 0
 l_index = list(range(N))
 
-for i in range(1,N+1):
+for i in range(N):
     node = sol_betw[i]
     A = np.delete(A,l_index.index(node),0)
     A = np.delete(A,l_index.index(node),1)
@@ -168,7 +168,7 @@ for i in range(1,N+1):
     eig=0
     for j in range(n_calc):
         eig += max_ev(A=A)
-    score5+=eig/n_calc
+    score5+=sr_init-eig/n_calc
     sr_betw.append(sr_init-eig/n_calc)
 print(score5)
 

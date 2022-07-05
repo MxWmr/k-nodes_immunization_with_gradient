@@ -37,7 +37,7 @@ def grad_comput(A,eta):
     return np.dot(np.diag(phi),np.dot(A.T,psi))
 
 
-def  gradient_downward(G,N,exact=False):
+def  gradient_downward(G,N):
     """
     in:
     G: graph to immunize
@@ -54,23 +54,20 @@ def  gradient_downward(G,N,exact=False):
 
     for n in tqdm(range(N)):
 
-        if not exact:
-            grad = grad_comput(A,eta)
+        grad = grad_comput(A,eta)
 
-        else:
-            grad = grad_comput(A,eta)
         try:
             node = np.argmin(grad)[0]
         except:
             node = np.argmin(grad)
-        grad[node] = 1000000
+        grad[node] = np.Inf
 
         while eta[node] == 0:
             try:
                 node = np.argmin(grad)[0]
             except:
                 node = np.argmin(grad)
-            grad[node] = 1000000
+            grad[node] = np.Inf
 
         eta[node] = 0
 
@@ -80,7 +77,7 @@ def  gradient_downward(G,N,exact=False):
 
 
 
-def gradient_upward(G,N,exact=False):
+def gradient_upward(G,N):
     """
     in:
     G: graph to immunize
@@ -97,10 +94,7 @@ def gradient_upward(G,N,exact=False):
 
     for n in tqdm(range(N)):
 
-        if not exact:
-            grad = grad_comput(A,eta)
-        else:
-            grad = grad_comput(A,eta)
+        grad = grad_comput(A,eta)
         try:
             node = np.argmax(grad)[0]
         except:
